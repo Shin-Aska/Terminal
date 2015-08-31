@@ -1,0 +1,1117 @@
+/*
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+*/
+
+#ifndef TERMINAL_H_INCLUDED
+#define TERMINAL_H_INCLUDED
+
+
+#include "Terminal_Dependencies.h"
+#include <stdio.h>
+#include <string.h>
+#include <stdarg.h>
+#include <stdlib.h>
+#include <ctype.h>
+
+
+//Handle class for Windows Output Handling
+
+
+class Terminal
+{
+    protected:
+
+		// [x] and [y] are the current cursor positions of the current terminal instance
+		// [limit] indicates the boundaries where x will be limited into
+		// [_h_point] indicates where [x] will be repositioned if [limit] is reached
+		int x, y, limit, _h_point;
+
+		// A self implementation of the Stack function {See Terminal_Dependencies.h for more info}
+		Stack myStack;
+
+		// The color that the Terminal will be using
+		COLOR _Global;
+
+		/*
+			Gets the coordinate state of the terminal session
+		*/
+
+		COORD getxy (void);
+		void getxy (int *x, int *y);
+
+		/////////////////////////////////////////
+
+		// Sets the coordinate state of the terminal session
+		// In other words, this function moves the cursor of the terminal
+
+		// Note: This function is used specifically by the Terminal functions, if you want to use
+		// The Terminal's equivalent, see setxy()
+		void gotoxy (int x, int y);
+
+		/*
+			Self implemented functions for converting decimal numbers to their different base system
+			counterpart.
+		*/
+		void NumToHex(int num);
+		void NumToOctal(int num);
+		void NumToBinary(int num);
+
+		//////////////////////////
+
+		// Prototype function called by functions such as getln and getval
+		void getUserInput(char fmt[]);
+
+    public:
+
+		Terminal()
+		{
+			x = 0;
+			y = 0;
+			limit = 79;
+			_h_point = 0;
+			 _Global = DEFAULT;
+
+			 #ifdef INHERITCURRENTCURSOR
+				getxy(&x, &y);
+			 #endif
+
+		};
+
+		/*
+			Sets the default color of the terminal
+		*/
+		void setGlobalColor (COLOR color);
+		void setGlobalColor (void);
+
+		//////////////////////////////////////////
+
+		/*
+			Prints the text on the screen based on the format specified on the variable fmt, this function
+			is similar the C's printf()
+		*/
+		void print (const char * fmt, ...);
+		void print (COLOR color, const char * fmt, ...);
+
+		//////////////////////////////////////////
+
+		/*
+			Fetches the whole string (including spaces) before the key (enter) is pressed
+			This function is similar to std::getline()
+		*/
+
+		void getln(std::string &p, COLOR color);
+		void getln(std::string &p);
+
+		//////////////////////////////////////////
+
+		/*
+			Fetches the string based on the format specified on the variable fmt, this function is similar
+			to C's scanf()
+		*/
+		void getval(COLOR color, const char *fmt, ...);
+		void getval(const char *fmt, ...);
+
+		//////////////////////////////////////////
+
+		// Skips a number of blocks in the console once print is called
+		void skip (int skip);
+		// Sets the console's X starting point
+		void setStartPoint(int point);
+		// Sets the limit of X, when this limit is reached, the print function will
+		//continue on the next line
+		void setLimit (int new_limit);
+
+		// Sets the X and Y position of the Terminal
+		void setxy (int x, int y);
+
+		/*
+			Prints the text on the screen
+		*/
+		void putch (char x);
+		void putch (COLOR color, char x);
+};
+
+    Terminal ___Main;
+
+    void Terminal::NumToBinary(int num)
+    {
+        int total = 0;
+        while(num > 0)
+        {
+            total = num % 2;
+            num /= 2;
+            myStack.push(total);
+        }
+
+        while (myStack.stackTop() != FAIL)
+        {
+            gotoxy(x, y);
+            std::cout <<myStack.stackTop();
+            myStack.pop();
+            x++;
+            if (x >= limit)
+            {
+                x = _h_point;
+                y++;
+            }
+        }
+    }
+
+    void Terminal::NumToOctal(int num)
+    {
+        int total = 0;
+        while(num > 0)
+        {
+            total = num % 8;
+            num /= 8;
+            myStack.push(total);
+        }
+
+        while (myStack.stackTop() != FAIL)
+        {
+            gotoxy(x, y);
+            std::cout <<myStack.stackTop();
+            myStack.pop();
+            x++;
+            if (x >= limit)
+            {
+                x = _h_point;
+                y++;
+            }
+        }
+    }
+
+    void Terminal::NumToHex(int num)
+    {
+        int total = 0;
+        while(num > 0)
+        {
+            total = num % 16;
+            num /= 16;
+            myStack.push(total);
+        }
+
+        while (myStack.stackTop() != FAIL)
+        {
+            gotoxy(x, y);
+            if (myStack.stackTop() == 10)
+            std::cout <<'a';
+            else if (myStack.stackTop() == 11)
+            std::cout <<'b';
+            else if (myStack.stackTop() == 12)
+            std::cout <<'c';
+            else if (myStack.stackTop() == 13)
+            std::cout <<'d';
+            else if (myStack.stackTop() == 14)
+            std::cout <<'e';
+            else if (myStack.stackTop() == 15)
+            std::cout <<'f';
+            else
+            std::cout <<myStack.stackTop();
+            myStack.pop();
+            x++;
+            if (x >= limit)
+            {
+                x = _h_point;
+                y++;
+            }
+        }
+    }
+
+#ifdef _WIN32
+
+    void Terminal::getxy(int *x, int *y)
+    {
+        CONSOLE_SCREEN_BUFFER_INFO csbi;
+        if(GetConsoleScreenBufferInfo(GetStdHandle(STD_OUTPUT_HANDLE), &csbi))
+        {
+            *x = csbi.dwCursorPosition.X;
+            *y = csbi.dwCursorPosition.Y;
+        }
+    }
+
+    void Terminal::gotoxy(int x, int y)
+    {
+        COORD coord;
+        coord.X = x;
+        coord.Y = y;
+        this->x = x;
+        this->y = y;
+        SetConsoleCursorPosition(hOut, coord);
+    }
+
+    COORD Terminal::getxy (void)
+    {
+        CONSOLE_SCREEN_BUFFER_INFO csbi;
+        GetConsoleScreenBufferInfo(hOut, &csbi);
+        x = csbi.dwCursorPosition.X;
+        y = csbi.dwCursorPosition.Y;
+        return csbi.dwCursorPosition;
+    }
+
+    void Terminal::setGlobalColor (COLOR color)
+    {
+        _Global = color;
+    }
+
+    void Terminal::setGlobalColor (void)
+    {
+        _Global = DEFAULT;
+    }
+
+    void Terminal::putch (COLOR color, char ch) {
+
+        SetConsoleTextAttribute(hOut, color + 1);
+        gotoxy(x, y);
+        if (x >= limit) {
+
+            x = _h_point;
+            y++;
+            gotoxy(x, y); x++;
+        }
+
+        if (ch == '\n') {
+            x = _h_point;
+            y++;
+        }
+        else {
+            printf("%c", ch);
+            x++;
+        }
+
+        SetConsoleTextAttribute(hOut, 7);
+    }
+
+    void Terminal::print (COLOR color, const char * fmt, ...)
+    {
+        if (Override_Ctrl)
+        {
+            SetConsoleTextAttribute(hOut, color + 1);
+            const char *p;
+            va_list argp;
+            int i;
+            char *s;
+            char fmtbuf[256];
+            gotoxy(x, y);
+            va_start(argp, fmt);
+            for(p = fmt; *p != '\0'; p++)
+            {
+                if(*p != '%')
+                {
+                  if (*p != '\n')
+                  {
+                    x++;
+                    if (x >= limit) {x = _h_point; y++; gotoxy(x, y); x++;}
+                    putchar(*p);
+                    continue;
+                  }
+                  else if (*p == '\n')
+                  {
+                    x = _h_point;
+                    y++;
+                    gotoxy(x, y);
+                    continue;
+                  }
+                }
+                switch(*++p)
+                    {
+
+                    case 'b':
+                        i = va_arg(argp, int);
+                        NumToBinary(i);
+                        break;
+                    case 'h':
+                        i = va_arg(argp, int);
+                        NumToHex(i);
+                        break;
+                    case 'o':
+                        i = va_arg(argp, int);
+                        NumToOctal(i);
+                        break;
+                    case 'c':
+                        i = va_arg(argp, int);
+                        x++;
+                        if (x > limit)
+                        {
+                            x = _h_point;
+                            y++;
+                            gotoxy(x, y);
+                            x++;
+                        }
+                        putchar(i);
+                        break;
+
+                    case 'd':
+                        i = va_arg(argp, int);
+                        s = itoa(i, fmtbuf, 10);
+                        x+= strlen(s);
+                        if (x > limit)
+                        {
+                            x = _h_point;
+                            y++;
+                            gotoxy(x, y);
+                            x = strlen(s);
+                        }
+                        fputs(s, stdout);
+                        break;
+
+                    case 's':
+                        s = va_arg(argp, char *);
+                        x += strlen(s);
+                        if (x > limit)
+                        {
+                            x = _h_point;
+                            y++;
+                            gotoxy(x, y);
+                            x = strlen(s);
+                        }
+                        fputs(s, stdout);
+                        break;
+
+                    case 'x':
+                        i = va_arg(argp, int);
+                        s = itoa(i, fmtbuf, 16);
+                        x+= strlen(s);
+                        if (x > limit)
+                        {
+                            x = _h_point;
+                            y++;
+                            gotoxy(x, y);
+                            x = strlen(s);
+                        }
+                        fputs(s, stdout);
+                        break;
+
+                    case '%':
+                        x++;
+                        if (x > limit)
+                        {
+                            x = _h_point;
+                            y++;
+                            gotoxy(x, y);
+                            x++;
+                        }
+                        putchar('%');
+                        break;
+                    }
+            }
+
+            va_end(argp);
+            SetConsoleTextAttribute(hOut, 7);
+            gotoxy(x, y);
+        }
+    }
+
+    void Terminal::putch(char ch) {
+
+        SetConsoleTextAttribute(hOut, _Global + 1);
+        gotoxy(x, y);
+        if (x >= limit) {
+
+            x = _h_point;
+            y++;
+            gotoxy(x, y); x++;
+        }
+
+        if (ch == '\n') {
+            x = _h_point;
+            y++;
+        }
+        else {
+            printf("%c", ch);
+            x++;
+        }
+
+        SetConsoleTextAttribute(hOut, 7);
+    }
+
+
+    void Terminal::print (const char * fmt, ...)
+    {
+        if(Override_Ctrl)
+        {
+            SetConsoleTextAttribute(hOut, _Global + 1);
+            const char *p;
+            va_list argp;
+            int i;
+            char *s;
+            char fmtbuf[256];
+            gotoxy(x, y);
+            va_start(argp, fmt);
+            gotoxy(x, y);
+            for(p = fmt; *p != '\0'; p++)
+            {
+                if(*p != '%')
+                {
+                  if (*p != '\n')
+                  {
+                    x++;
+                    if (x >= limit) {x = _h_point; y++; gotoxy(x, y); x++;}
+                    putchar(*p);
+                    continue;
+                  }
+                  else
+                  {
+                    x = _h_point;
+                    y++;
+                    gotoxy(x, y);
+                    continue;
+                  }
+                }
+                switch(*++p)
+                    {
+                    case 'b':
+                        i = va_arg(argp, int);
+                        NumToBinary(i);
+                        break;
+                    case 'h':
+                        i = va_arg(argp, int);
+                        NumToHex(i);
+                        break;
+                    case 'o':
+                        i = va_arg(argp, int);
+                        NumToOctal(i);
+                        break;
+                    case 'c':
+                        i = va_arg(argp, int);
+                        x++;
+                        if (x > limit) {x = _h_point; y++; gotoxy(x, y);}
+                        putchar(i);
+                        break;
+
+                    case 'd':
+                        i = va_arg(argp, int);
+                        s = itoa(i, fmtbuf, 10);
+                        x+= strlen(s);
+                        if (x > limit) {x = _h_point; y++; gotoxy(x, y);}
+                        fputs(s, stdout);
+                        break;
+
+                    case 's':
+                        s = va_arg(argp, char *);
+                        x += strlen(s);
+                        if (x > limit) {x = _h_point; y++; gotoxy(x, y);}
+                        fputs(s, stdout);
+                        break;
+
+                    case 'x':
+                        i = va_arg(argp, int);
+                        s = itoa(i, fmtbuf, 16);
+                        x+= strlen(s);
+                        if (x > limit) {x = _h_point; y++; gotoxy(x, y);}
+                        fputs(s, stdout);
+                        break;
+
+                    case '%':
+                        x++;
+                        if (x > limit) {x = _h_point; y++; gotoxy(x, y);}
+                        putchar('%');
+                        break;
+                    }
+            }
+
+        va_end(argp);
+        SetConsoleTextAttribute(hOut, 7);
+        gotoxy(x, y);
+        }
+    }
+
+
+    void Terminal::getln(std::string &p, COLOR color)
+    {
+        if (Override_Ctrl)
+        {
+            SetConsoleTextAttribute(hOut, color + 1);
+            std::getline(std::cin, p);
+            getxy();
+            gotoxy(x, y);
+            SetConsoleTextAttribute(hOut, 7);
+        }
+    }
+
+
+    void Terminal::getln(std::string &p)
+    {
+        if (Override_Ctrl)
+        {
+            SetConsoleTextAttribute(hOut, _Global + 1);
+            std::getline(std::cin, p);
+            getxy();
+            gotoxy(x, y);
+            SetConsoleTextAttribute(hOut, 7);
+        }
+    }
+
+    void Terminal::getval(COLOR color, const char *fmt, ...)
+    {
+        if (Override_Ctrl)
+        {
+            va_list argp;
+            va_start(argp, fmt);
+            const char *p;
+            char fmtbuf[256] = "";
+            int *itmp;
+            char *ctmp;
+            int loop_cnt = 0;
+            int length = strlen(fmt);
+            SetConsoleTextAttribute(hOut, color + 1);
+            for (p = fmt; loop_cnt < length; p++)
+            {
+                if (*p == '%')
+                {
+                    getUserInput(fmtbuf);
+                    switch (*++p)
+                    {
+                        case 'c':
+                        ctmp = (char*)malloc(sizeof(char));
+                        ctmp = va_arg(argp, char*);
+                        *ctmp = fmtbuf[0];
+                        break;
+
+                        case 'd':
+                        itmp = (int*)malloc(sizeof(int));
+                        itmp = va_arg(argp, int*);
+                        *itmp = ConvertStr_To_Num(fmtbuf);
+                        break;
+                        case 's':
+                        ctmp = (char*)malloc(sizeof(char[256]));
+                        ctmp = va_arg(argp, char*);
+                        strcpy(ctmp, "");
+                        for (int i = 0; i < strlen(fmtbuf); i++)
+                        {
+                            ctmp[i] = fmtbuf[i];
+                            if (i + 1 == strlen(fmtbuf))
+                            ctmp[i + 1] = '\0';
+                        }
+                        break;
+
+                    }
+                }
+
+
+                loop_cnt++;
+                strcpy(fmtbuf, "");
+            }
+
+            SetConsoleTextAttribute(hOut, 7);
+            va_end(argp);
+        }
+    }
+
+    void Terminal::getval(const char *fmt, ...)
+    {
+        if (Override_Ctrl)
+        {
+            va_list argp;
+            va_start(argp, fmt);
+            const char *p;
+            char fmtbuf[256] = "";
+            int *itmp;
+            char *ctmp;
+            int loop_cnt = 0;
+            int length = strlen(fmt);
+            SetConsoleTextAttribute(hOut, _Global + 1);
+            for (p = fmt; loop_cnt < length; p++)
+            {
+                if (*p == '%')
+                {
+                    getUserInput(fmtbuf);
+                    switch (*++p)
+                    {
+                        case 'c':
+                        ctmp = (char*)malloc(sizeof(char));
+                        ctmp = va_arg(argp, char*);
+                        *ctmp = fmtbuf[0];
+                        break;
+
+                        case 'd':
+                        itmp = (int*)malloc(sizeof(int));
+                        itmp = va_arg(argp, int*);
+                        //gotoxy(0, 15);
+                        *itmp = ConvertStr_To_Num(fmtbuf);
+                        //std::cout <<"Bug: "<<fmtbuf;
+                        break;
+
+                        case 's':
+                        ctmp = (char*)malloc(sizeof(char[256]));
+                        ctmp = va_arg(argp, char*);
+                        strcpy(ctmp, "");
+                        for (int i = 0; i < strlen(fmtbuf); i++)
+                        {
+                            ctmp[i] = fmtbuf[i];
+                            if (i + 1 == strlen(fmtbuf))
+                            ctmp[i + 1] = '\0';
+                        }
+
+
+                    }
+                }
+            SetConsoleTextAttribute(hOut, 7);
+            loop_cnt++;
+            strcpy(fmtbuf, "");
+            }
+            va_end(argp);
+        }
+    }
+
+    void Terminal::getUserInput (char fmt[])
+    {
+        if (Override_Ctrl)
+        {
+            char fmtbuf[256];
+            int input = -1;
+            int index = 0;
+            int LastY = y;
+            int LastX = x;
+            do
+            {
+                //gotoxy(0, 19);
+                //std::cout <<"X Pos: "<<x<<"   Y Pos: "<<y<<"   Limit: "<<limit<<"   setStartPoint"<<_h_point<<"   Last Y Pos: "<<LastY<<endl;
+                gotoxy(x, y);
+                input = getche();
+                fmtbuf[index] = input;
+                if (input == 8)
+                {
+                    if (index > 0)
+                    {
+                        index--;
+                        if (x <= _h_point && LastY < y)
+                        {
+                            x = limit;
+                            y --;
+                        }
+                        else
+                        {
+                            x--;
+                            putchar(' ');
+                        }
+                    }
+                    else
+                    {
+                        if (x <= _h_point && LastY < y)
+                        {
+                            x = limit;
+                            y --;
+                        }
+                        else if (x > LastX)
+                        x--;
+                        putchar(' ');
+                    }
+
+                    continue;
+                }
+                index++;
+                x++;
+                if (x >= limit)
+                {
+                    x = _h_point;
+                    y++;
+                }
+
+
+
+
+                } while (input != 13);
+                fmtbuf[index] = '\0';
+                strcpy(fmt, fmtbuf);
+        }
+    }
+
+    void Terminal::skip (int skip)
+    {
+        if (Override_Ctrl)
+        {
+             y += skip;
+            gotoxy(x, y);
+        }
+
+    }
+    void Terminal::setStartPoint(int point)
+    {
+        if (Override_Ctrl)
+        {
+            _h_point = point;
+            x = point;
+            gotoxy (x , y);
+        }
+    }
+    void Terminal::setLimit (int new_limit)
+    {
+        if (Override_Ctrl)
+        limit = new_limit;
+    }
+
+    void Terminal::setxy (int x1, int y1)
+    {
+        if (Override_Ctrl)
+        {
+            x = x1;
+            y = y1;
+            gotoxy(x, y);
+        }
+    }
+
+    void ____Main_Term (bool term)
+    {
+        if (term)
+        Override_Ctrl = true;
+        else
+        {
+            #ifndef NOCONFIRMONEXIT
+                Override_Ctrl = false;
+                system("cls");
+
+                printf("Program Terminated");
+                for (int i = 0; i < 3; i++)
+                {
+                    Sleep(50);
+                    printf(".");
+                }
+                Sleep(100);
+                printf("\nPress Any Key To Continue.");
+                getche();
+            #endif
+        }
+
+    }
+
+#elif defined __linux__
+
+    void Terminal::setStartPoint(int point)
+    {
+        if (Override_Ctrl)
+        {
+            _h_point = point + 1;
+            x = point + 1;
+            gotoxy (x , y);
+        }
+    }
+    void Terminal::setLimit (int new_limit)
+    {
+        if (Override_Ctrl)
+        limit = new_limit;
+    }
+
+    void Terminal::setxy(int x1, int y1)
+    {
+        if (Override_Ctrl)
+        {
+            x = x1;
+            y = y1;
+            gotoxy(x, y);
+        }
+    }
+
+    void Terminal::gotoxy (int x, int y)
+    {
+        printf("%c[%d;%df", 0x1B, y, x);
+    }
+
+    void Terminal::setGlobalColor (COLOR color)
+    {
+        _Global = color;
+    }
+
+    void Terminal::setGlobalColor (void)
+    {
+        _Global = DEFAULT;
+    }
+
+    void ____Main_Term (bool term)
+    {
+        if (term)
+        { Override_Ctrl = true; ___Main.print("\n");}
+        else
+        {
+            Override_Ctrl = false;
+
+            #ifndef NOCONFIRMONEXIT
+                gotoxy(0, 0);
+                system("clear");
+				printf("Program Terminated");
+                for (int i = 0; i < 3; i++)
+                {
+                    fflush(stdout);
+                    usleep(500000);
+                    printf(".");
+                }
+                fflush(stdout);
+                usleep(1000000);
+                printf("\nPress Any Key To Continue.");
+                getche();
+            #endif
+
+        }
+    }
+
+    void Terminal::print (COLOR color, const char * fmt, ...)
+    {
+        if (Override_Ctrl)
+        {
+            SetConsoleColor(color);
+            const char *p;
+            va_list argp;
+            int i;
+            char *s;
+            char fmtbuf[256];
+            gotoxy(x, y);
+            va_start(argp, fmt);
+            for(p = fmt; *p != '\0'; p++)
+            {
+                if(*p != '%')
+                {
+                  if (*p != '\n')
+                  {
+                    x++;
+                    if (x >= limit) {x = _h_point; y++; gotoxy(x, y); x++;}
+                    else {gotoxy(x, y);}
+                    putchar(*p);
+                    continue;
+                  }
+                  else if (*p == '\n')
+                  {
+                    x = _h_point;
+                    y++;
+                    gotoxy(x, y);
+                    continue;
+                  }
+                }
+                switch(*++p)
+                    {
+
+                    case 'b':
+                        i = va_arg(argp, int);
+                        NumToBinary(i);
+                        break;
+                    case 'h':
+                        i = va_arg(argp, int);
+                        NumToHex(i);
+                        break;
+                    case 'o':
+                        i = va_arg(argp, int);
+                        NumToOctal(i);
+                        break;
+                    case 'c':
+                        i = va_arg(argp, int);
+                        x++;
+                        if (x > limit)
+                        {
+                            x = _h_point;
+                            y++;
+                            gotoxy(x, y);
+                            x++;
+                        }
+                        putchar(i);
+                        break;
+
+                    case 'd':
+                        i = va_arg(argp, int);
+                        s = itoa(i, fmtbuf, 10);
+                        x+= strlen(s);
+                        if (x > limit)
+                        {
+                            x = _h_point;
+                            y++;
+                            gotoxy(x, y);
+                            x = strlen(s);
+                        }
+                        fputs(s, stdout);
+                        break;
+
+                    case 's':
+                        s = va_arg(argp, char *);
+                        x += strlen(s);
+                        if (x > limit)
+                        {
+                            x = _h_point;
+                            y++;
+                            gotoxy(x, y);
+                            x = strlen(s);
+                        }
+                        fputs(s, stdout);
+                        break;
+
+                    case 'x':
+                        i = va_arg(argp, int);
+                        s = itoa(i, fmtbuf, 16);
+                        x+= strlen(s);
+                        if (x > limit)
+                        {
+                            x = _h_point;
+                            y++;
+                            gotoxy(x, y);
+                            x = strlen(s);
+                        }
+                        fputs(s, stdout);
+                        break;
+
+                    case '%':
+                        x++;
+                        if (x > limit)
+                        {
+                            x = _h_point;
+                            y++;
+                            gotoxy(x, y);
+                            x++;
+                        }
+                        putchar('%');
+                        break;
+                    }
+            }
+
+            va_end(argp);
+            SetConsoleColor(DEFAULT);
+            gotoxy(x, y);
+        }
+    }
+
+    void Terminal::print (const char * fmt, ...)
+    {
+        if (Override_Ctrl)
+        {
+            SetConsoleColor(_Global);
+            const char *p;
+            va_list argp;
+            int i;
+            char *s;
+            char fmtbuf[256];
+            gotoxy(x, y);
+            va_start(argp, fmt);
+            for(p = fmt; *p != '\0'; p++)
+            {
+                if(*p != '%')
+                {
+                  if (*p != '\n')
+                  {
+                    x++;
+                    if (x >= limit) {x = _h_point; y++; gotoxy(x, y); x++;}
+                    else {gotoxy(x, y);}
+                    putchar(*p);
+                    continue;
+                  }
+                  else if (*p == '\n')
+                  {
+                    x = _h_point;
+                    y++;
+                    gotoxy(x, y);
+                    continue;
+                  }
+                }
+                switch(*++p)
+                    {
+
+                    case 'b':
+                        i = va_arg(argp, int);
+                        NumToBinary(i);
+                        break;
+                    case 'h':
+                        i = va_arg(argp, int);
+                        NumToHex(i);
+                        break;
+                    case 'o':
+                        i = va_arg(argp, int);
+                        NumToOctal(i);
+                        break;
+                    case 'c':
+                        i = va_arg(argp, int);
+                        x++;
+                        if (x > limit)
+                        {
+                            x = _h_point;
+                            y++;
+                            gotoxy(x, y);
+                            x++;
+                        }
+                        putchar(i);
+                        break;
+
+                    case 'd':
+                        i = va_arg(argp, int);
+                        s = itoa(i, fmtbuf, 10);
+                        x+= strlen(s);
+                        if (x > limit)
+                        {
+                            x = _h_point;
+                            y++;
+                            gotoxy(x, y);
+                            x = strlen(s);
+                        }
+                        fputs(s, stdout);
+                        break;
+
+                    case 's':
+                        s = va_arg(argp, char *);
+                        x += strlen(s);
+                        if (x > limit)
+                        {
+                            x = _h_point;
+                            y++;
+                            gotoxy(x, y);
+                            x = strlen(s);
+                        }
+                        fputs(s, stdout);
+                        break;
+
+                    case 'x':
+                        i = va_arg(argp, int);
+                        s = itoa(i, fmtbuf, 16);
+                        x+= strlen(s);
+                        if (x > limit)
+                        {
+                            x = _h_point;
+                            y++;
+                            gotoxy(x, y);
+                            x = strlen(s);
+                        }
+                        fputs(s, stdout);
+                        break;
+
+                    case '%':
+                        x++;
+                        if (x > limit)
+                        {
+                            x = _h_point;
+                            y++;
+                            gotoxy(x, y);
+                            x++;
+                        }
+                        putchar('%');
+                        break;
+                    }
+            }
+
+            va_end(argp);
+            SetConsoleColor(DEFAULT);
+            gotoxy(x, y);
+        }
+    }
+
+
+#endif
+
+
+
+
+
+#define pause getch()
+#define cnTerm_Activate ____Main_Term(true)
+#define cnTerm_Deactivate ____Main_Term(false)
+#define cnGotoxy ___Main.gotoxy
+#define cnPrint ___Main.print
+#define cnGetln ___Main.getln
+#define cnFill ___Main.fillLine
+#define cnGlobal_Color ___Main.setGlobalColor
+#define cnTitle SetConsoleTitle
+#define cnSkip ___Main.skip
+#define cnStartPoint ___Main.setStartPoint
+#define cnLimit ___Main.setLimit
+#define cnSetxy ___Main.setxy
+#define cnGetval ___Main.getval
+#define cnRemain_pos ___Main.remainPos
+#define clscr() system("cls")
+
+
+
+#endif // TERMINAL_H_INCLUDED
