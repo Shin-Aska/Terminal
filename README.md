@@ -20,12 +20,13 @@ How to use
 
 Programs using the library must first activate the library with the command cnTerm_Activate. This is to indicate that the
 library will now be overriding the normal i/o commands of the program. Functions such as *printf* and *cout* might still
-work but it is *recommended* that those functions will be unused while this is activated as it might generate an error
+work but it is **recommended** that those functions will be unused while this is activated as it might generate an error
 on the output of the program.
 
 Once activated, you can now call functions such as *cnPrint()* which will print the text on the screen. Other functions
-exists for manipulation input/output such as *cnStartPoint()* which specifies which space it will display text. As an
-example, compiling this code:
+for manipulation  of input/output exists such as *cnStartPoint()* which specifies which space it will the text display.
+
+For example, compiling this code (Demo - 1.cpp)
 
 ```C++
 
@@ -51,5 +52,18 @@ will result in to this.
 ![alt tag](http://i.imgur.com/1qLDgCT.png)
 
 It is recommended that after the end of the program, you call in cnTerm_Deactivate which removes the override of the normal
-i/o commands and returns everything back to normal.
+i/o commands and returns everything back to normal. Of course more information is provided in the documentation.
+
+Examples
+===========
+
+Demo - 2
+
+A quick demo demonstrating how the library is used to mimic Unix's ls utility program
+![alt tag](http://i.imgur.com/gKAPExj.png?1)
+
+Demo - 3
+
+A quick demo how the library is used to copy the ending credits of portal.
+![alt tag](http://i.imgur.com/qSo19ZP.png?1)
 
