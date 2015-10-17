@@ -119,9 +119,11 @@ class Terminal
 		void skip (int skip);
 		// Sets the console's X starting point
 		void setStartPoint(int point);
+		void resetStartPoint (void) {setStartPoint(0);}
 		// Sets the limit of X, when this limit is reached, the print function will
 		//continue on the next line
 		void setLimit (int new_limit);
+		void resetLimit (void) {setLimit(79);}
 
 		// Sets the X and Y position of the Terminal
 		void setxy (int x, int y);
@@ -291,7 +293,7 @@ class Terminal
             SetConsoleTextAttribute(hOut, color + 1);
             const char *p;
             va_list argp;
-            int i;
+            int i, iS, len;
             char *s;
             char fmtbuf[256];
             gotoxy(x, y);
@@ -303,7 +305,7 @@ class Terminal
                   if (*p != '\n')
                   {
                     x++;
-                    if (x >= limit) {x = _h_point; y++; gotoxy(x, y); x++;}
+                    if (x > limit) {x = _h_point; y++; gotoxy(x, y); x++;}
                     putchar(*p);
                     continue;
                   }
@@ -359,15 +361,30 @@ class Terminal
 
                     case 's':
                         s = va_arg(argp, char *);
-                        x += strlen(s);
-                        if (x > limit)
-                        {
-                            x = _h_point;
-                            y++;
-                            gotoxy(x, y);
-                            x = strlen(s);
+                        len = strlen(s);
+                        for (iS = 0; iS < len; iS++) {
+
+                            if (s[iS] != '\n')
+                            {
+                                x++;
+                                if (x > limit) {
+                                    x = _h_point;
+                                    y++;
+                                    gotoxy(x, y);
+                                    x++;
+                                }
+
+                                putchar(s[iS]);
+                                continue;
+                            }
+                            else if (s[iS] == '\n')
+                            {
+                                x = _h_point;
+                                y++;
+                                gotoxy(x, y);
+                                continue;
+                            }
                         }
-                        fputs(s, stdout);
                         break;
 
                     case 'x':
@@ -448,7 +465,7 @@ class Terminal
                   if (*p != '\n')
                   {
                     x++;
-                    if (x >= limit) {x = _h_point; y++; gotoxy(x, y); x++;}
+                    if (x > limit) {x = _h_point; y++; gotoxy(x, y); x++;}
                     putchar(*p);
                     continue;
                   }
@@ -527,6 +544,7 @@ class Terminal
             std::getline(std::cin, p);
             getxy();
             gotoxy(x, y);
+            x = _h_point;
             SetConsoleTextAttribute(hOut, 7);
         }
     }
@@ -540,6 +558,7 @@ class Terminal
             std::getline(std::cin, p);
             getxy();
             gotoxy(x, y);
+            x = _h_point;
             SetConsoleTextAttribute(hOut, 7);
         }
     }
@@ -595,6 +614,10 @@ class Terminal
                 strcpy(fmtbuf, "");
             }
 
+            getxy();
+            gotoxy(x, y);
+            x = _h_point;
+            y += 1;
             SetConsoleTextAttribute(hOut, 7);
             va_end(argp);
         }
@@ -652,6 +675,10 @@ class Terminal
             loop_cnt++;
             strcpy(fmtbuf, "");
             }
+            getxy();
+            gotoxy(x, y);
+            x = _h_point;
+            y += 1;
             va_end(argp);
         }
     }
@@ -665,6 +692,12 @@ class Terminal
             int index = 0;
             int LastY = y;
             int LastX = x;
+
+            if (x > limit) {
+                x = _h_point;
+                y++;
+            }
+
             do
             {
                 //gotoxy(0, 19);
@@ -679,25 +712,16 @@ class Terminal
                         index--;
                         if (x <= _h_point && LastY < y)
                         {
-                            x = limit;
+                            x = limit - 1;
                             y --;
+                            gotoxy(x, y);
+                            putchar(' ');
                         }
                         else
                         {
                             x--;
                             putchar(' ');
                         }
-                    }
-                    else
-                    {
-                        if (x <= _h_point && LastY < y)
-                        {
-                            x = limit;
-                            y --;
-                        }
-                        else if (x > LastX)
-                        x--;
-                        putchar(' ');
                     }
 
                     continue;
@@ -710,12 +734,9 @@ class Terminal
                     y++;
                 }
 
-
-
-
-                } while (input != 13);
-                fmtbuf[index] = '\0';
-                strcpy(fmt, fmtbuf);
+            } while (input != 13);
+            fmtbuf[index - 1] = '\0';
+            strcpy(fmt, fmtbuf);
         }
     }
 
@@ -1106,7 +1127,9 @@ class Terminal
 #define cnTitle SetConsoleTitle
 #define cnSkip ___Main.skip
 #define cnStartPoint ___Main.setStartPoint
+#define cnResetStartPoint ___Main.resetStartPoint
 #define cnLimit ___Main.setLimit
+#define cnResetLimit ___Main.resetLimit
 #define cnSetxy ___Main.setxy
 #define cnGetval ___Main.getval
 #define cnRemain_pos ___Main.remainPos
