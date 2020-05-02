@@ -1,7 +1,7 @@
 #include <iostream>
 #include <iomanip>
 #include <cstring>
-#include "../headers/Terminal"
+#include "../../headers/Terminal"
 
 # define RIGHTDOWN     218
 # define RIGHTUP       192

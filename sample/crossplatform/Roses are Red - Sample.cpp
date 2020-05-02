@@ -1,4 +1,4 @@
-#include "../headers/Terminal"
+#include "../../headers/Terminal"
 #include <cstdlib>
 
 int main (void)

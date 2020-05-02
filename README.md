@@ -57,12 +57,12 @@ i/o commands and returns everything back to normal. Of course more information i
 Examples
 ===========
 
-Demo - 2
+windows/File List - Sample.cpp
 
 A quick demo demonstrating how the library is used to mimic Unix's ls utility program
 ![alt tag](http://i.imgur.com/gKAPExj.png?1)
 
-Demo - 3
+windows/GladOS + Multi Media - Sample.cpp
 
 A quick demo how the library is used to copy the ending credits of portal.
 ![alt tag](http://i.imgur.com/qSo19ZP.png?1)

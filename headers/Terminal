@@ -800,6 +800,8 @@ class Terminal
 
 #elif defined __linux__
 
+    #include <unistd.h>
+
     void Terminal::setStartPoint(int point)
     {
         if (Override_Ctrl)

@@ -9,7 +9,7 @@
 #define getcwd _getcwd
 
 
-#include "../headers/Terminal"
+#include "../../headers/Terminal"
 
 /*
     Mimic ls utility of unix using the Terminal Library
