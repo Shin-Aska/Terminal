@@ -2,6 +2,11 @@
 
 A **Terminal Library** that aims to unify command line shell commands for manipulating display in a simple class library.
 
+---
+**Note**: This branch contains the legacy code I had back when I was a student who first time learned C and C++ decades ago.
+I am keeping this repository for both archive and nostalgia purposes.
+---
+
 ![alt tag](http://i.imgur.com/Uj5ko4L.png?1)
 
 Each terminal emulator has different functions on how they implement text display. Windows and DOS has different semantics
